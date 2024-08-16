@@ -6,12 +6,19 @@
 <body>
 	<center>
     <h2>Register</h2>
+	<table border=0>
     <form method="post">
-        Username: <input type="text" name="username" required><br>
-        Password: <input type="password" name="password" required><br>
+	<tr>
+		<td>Username: </td><td><input type="text" name="username" required></td>
+	</tr>
+	<tr>
+		<td>Password: </td><td><input type="password" name="password" required></td>
+	</tr>
+	</table></br>
         <input type="submit" value="Register">
     </form>
-    <a href="{{ url_for('login') }}">Back to Login</a>
+	</br>
+    <p><a href="{{ url_for('login') }}">Back to Login</a></p>
 	</center>
 </body>
 </html>
