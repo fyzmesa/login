@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import rsa
 import csv
 import time
@@ -29,6 +29,15 @@ else:
 
 # User attempts tracking
 user_attempts = {}
+
+# Function to load a user's public key
+def load_user_public_key(username):
+    with open(f'{username}_public_key.pem', 'rb') as pub_file:
+        return rsa.PublicKey.load_pkcs1(pub_file.read())
+        
+def load_user_private_key(username):
+    with open(f'{username}_private_key.pem', 'rb') as priv_file:
+        return rsa.PrivateKey.load_pkcs1(priv_file.read())
 
 def create_user_keys(username):
     pubkey, privkey = rsa.newkeys(512)
@@ -100,11 +109,62 @@ def login():
             return render_template('login.html', message='Invalid credentials')
     return render_template('login.html')
 
-@app.route('/welcome')
+@app.route('/welcome', methods=['GET', 'POST'])
 def welcome():
+    decrypted_message = session.pop('decrypted_message', None)
     if 'username' in session:
-        return render_template('welcome.html', username=session['username'])
+        return render_template('welcome.html', username=session['username'], decrypted_message=decrypted_message)
     return redirect(url_for('login'))
+
+@app.route('/save_message', methods=['POST'])
+def save_message():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    username = session['username']
+    user_message = request.form['user_message']
+    pubkey = load_user_public_key(username)
+
+    # Encrypt the message
+    encrypted_message = rsa.encrypt(user_message.encode(), pubkey)
+
+    # Save the encrypted message to a text file
+    with open(f'{username}_message.txt', 'wb') as message_file:
+        message_file.write(encrypted_message)
+
+    return redirect(url_for('welcome'))
+
+@app.route('/decrypt_message', methods=['POST'])
+def decrypt_message():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    username = session['username']
+    privkey = load_user_private_key(username)
+
+    # Check if a file was uploaded
+    if 'encrypted_file' not in request.files:
+        return redirect(url_for('welcome'))
+
+    file = request.files['encrypted_file']
+
+    # Check if the file is valid
+    if file.filename == '':
+        return redirect(url_for('welcome'))
+
+    try:
+        # Read the encrypted message from the file
+        encrypted_message = file.read()
+
+        # Decrypt the message
+        decrypted_message = rsa.decrypt(encrypted_message, privkey).decode()
+
+        # Store the decrypted message in the session
+        session['decrypted_message'] = decrypted_message
+    except Exception as e:
+        session['decrypted_message'] = f'Error decrypting message: {str(e)}'
+
+    return redirect(url_for('welcome')) 
 
 @app.route('/logout')
 def logout():
