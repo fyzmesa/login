@@ -6,7 +6,19 @@
 <body>
 	<center>
     <h2>Welcome, {{ username }}</h2>
+    <form method="post" action="/save_message">
+        <textarea name="user_message" placeholder="Enter your message here..." required></textarea><br>
+        <input type="submit" value="Encrypt & Save Message">
+    </form>
 	</br>
+    <form method="post" action="/decrypt_message" enctype="multipart/form-data">
+        <input type="file" name="encrypted_file" accept=".txt" required><br>
+        <input type="submit" value="Decrypt Message">
+    </form>
+	 {% if decrypted_message %}
+        <h3>Decrypted Message:</h3>
+        <p>{{ decrypted_message }}</p>
+    {% endif %}
     <a href="{{ url_for('logout') }}">Logout</a>
 	</center>
 </body>
